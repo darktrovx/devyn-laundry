@@ -36,7 +36,7 @@ Citizen.CreateThread(function()
                     {
                         type = "server",
                         event = "laundry:startwasher",
-                        icon = "fad fa-hourglass-start",
+                        icon = "fas fa-hourglass-start",
                         label = "Start Washer",
                         id = k,
                         canInteract = function()
