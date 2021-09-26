@@ -1,6 +1,5 @@
 
-
-
+-- List of washers. The table key is the washerId.
 local washers = {
     [1] = {washing = false, pickup = false, cleaned = 0},
     [2] = {washing = false, pickup = false, cleaned = 0},
@@ -8,14 +7,17 @@ local washers = {
     [4] = {washing = false, pickup = false, cleaned = 0},
 }
 
+-- Callback to check if the passed washerId is already washing.
 QBCore.Functions.CreateCallback("laundry:isWashing", function(source, cb, washerId)
     cb(washers[washerId].washing)
 end)
 
+-- Callback check to see if the passed washerId is ready for collection/pickup.
 QBCore.Functions.CreateCallback("laundry:isReady", function(source, cb, washerId)
     cb(washers[washerId].pickup)
 end)
 
+-- Start the washer if it is not already started.
 RegisterServerEvent("laundry:startwasher")
 AddEventHandler("laundry:startwasher", function(data)
     src = source
@@ -26,6 +28,7 @@ AddEventHandler("laundry:startwasher", function(data)
     end
 end)
 
+-- Collect any waiting money from the washer.
 RegisterServerEvent("laundry:collect")
 AddEventHandler("laundry:collect", function(data)
     src = source
@@ -49,7 +52,7 @@ AddEventHandler("laundry:collect", function(data)
 end)
 
 
--- Stash Items
+-- Get the stash items for the passed washerId: This function was taken from qb-inventory and modifed.
 function GetWasherItems(washerId)
 	local items = {}
     local stash = 'washer'..washerId
@@ -81,18 +84,23 @@ function GetWasherItems(washerId)
 	return items
 end
 
+-- Attempt to start the washing cycle of the passed washerId.
 function wash(washerId, source)
 
     local stash = 'washer'..washerId
     local items = GetWasherItems(washerId)
     local cleaned = 0
 
-    for k,v in pairs(items) do 
-        if v.name == "markedbills" then 
-            cleaned = cleaned + v.info.worth 
+    -- Loop through the items in the stash. If its a "markedbills" item then get its "worth" from the info table and add it to the total "cleaned" amount.
+    for item, data in pairs(items) do 
+        if data.name == "markedbills" then
+            if data.info.worth ~= nil then
+                cleaned = cleaned + data.info.worth
+            end
         end 
     end
 
+    -- Check to make sure there is anything to clean/wash. 
     if cleaned > 0 then 
         washers[washerId].washing = true
         TriggerClientEvent('QBCore:Notify', source, "Washer will be done in 10 minutes.", 'primary')
@@ -105,10 +113,11 @@ function wash(washerId, source)
         washers[washerId].cleaned = cleaned
         washers[washerId].pickup = true
 
+        -- Remove the items from the stash by setting it to be empty in the database.
         exports.ghmattimysql:execute("UPDATE stashitems SET items = '[]' WHERE stash = @stash", {
             ['@stash'] = stash,
         })
     else 
-        TriggerClientEvent('QBCore:Notify', source, "There is nothing to wash!.", 'error')
+        TriggerClientEvent('QBCore:Notify', source, "There is nothing to wash!", 'error')
     end
 end
