@@ -19,10 +19,8 @@ end)
 RegisterServerEvent("laundry:startwasher")
 AddEventHandler("laundry:startwasher", function(data)
     src = source
-    if not washers[data.id].washing then 
-        washers[data.id].washing = true
-        TriggerClientEvent('QBCore:Notify', src, "Washer will be done in 10 minutes.", 'primary')
-        wash(data.id)
+    if not washers[data.id].washing then
+        wash(data.id, src)
     else 
         TriggerClientEvent('QBCore:Notify', src, "This washer is already started!", 'error')
     end
@@ -83,7 +81,7 @@ function GetWasherItems(washerId)
 	return items
 end
 
-function wash(washerId)
+function wash(washerId, source)
 
     local stash = 'washer'..washerId
     local items = GetWasherItems(washerId)
@@ -95,15 +93,22 @@ function wash(washerId)
         end 
     end
 
-    -- Set total to 80% of total marked bills worth.
-    local cleaned = (cleaned * 0.8)
-    -- Wait 10 minutes for wash cycle.
-    Citizen.Wait(60000 * 10)
-    print("[LAUNDRY]: CLEANED "..cleaned)
-    washers[washerId].cleaned = cleaned
-    washers[washerId].pickup = true
+    if cleaned > 0 then 
+        washers[washerId].washing = true
+        TriggerClientEvent('QBCore:Notify', source, "Washer will be done in 10 minutes.", 'primary')
 
-    exports.ghmattimysql:execute("UPDATE stashitems SET items = '[]' WHERE stash = @stash", {
-        ['@stash'] = stash,
-    })
+        -- Set total to 80% of total marked bills worth.
+        local cleaned = (cleaned * 0.8)
+        -- Wait 10 minutes for wash cycle.
+        Citizen.Wait(60000 * 10)
+        print("[LAUNDRY]: CLEANED "..cleaned)
+        washers[washerId].cleaned = cleaned
+        washers[washerId].pickup = true
+
+        exports.ghmattimysql:execute("UPDATE stashitems SET items = '[]' WHERE stash = @stash", {
+            ['@stash'] = stash,
+        })
+    else 
+        TriggerClientEvent('QBCore:Notify', source, "There is nothing to wash!.", 'error')
+    end
 end
