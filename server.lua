@@ -21,7 +21,7 @@ AddEventHandler("laundry:startwasher", function(data)
     src = source
     if not washers[data.id].washing then 
         washers[data.id].washing = true
-        TriggerClientEvent('QBCore:Notify', src, "Washer will be done in 10 minutes.", 'info')
+        TriggerClientEvent('QBCore:Notify', src, "Washer will be done in 10 minutes.", 'primary')
         wash(data.id)
     else 
         TriggerClientEvent('QBCore:Notify', src, "This washer is already started!", 'error')
@@ -95,7 +95,9 @@ function wash(washerId)
         end 
     end
 
-    local cleaned = (cleaned * 0.6)
+    -- Set total to 80% of total marked bills worth.
+    local cleaned = (cleaned * 0.8)
+    -- Wait 10 minutes for wash cycle.
     Citizen.Wait(60000 * 10)
     print("[LAUNDRY]: CLEANED "..cleaned)
     washers[washerId].cleaned = cleaned

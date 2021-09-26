@@ -67,7 +67,6 @@ Citizen.CreateThread(function()
                 distance = 3.0
         })
     end
-    Wait(100)
 end)
 
 RegisterNetEvent("laundry:openwasher")
