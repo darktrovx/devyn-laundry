@@ -31,7 +31,7 @@ Citizen.CreateThread(function()
                             local c = false 
                             QBCore.Functions.TriggerCallback("laundry:isWashing", function(result)
                                 c = result
-                            end, k)
+                            end, washer)
                             Wait(200)
                             if not c then return true else return false end 
                         end
@@ -46,7 +46,7 @@ Citizen.CreateThread(function()
                             local c = false 
                             QBCore.Functions.TriggerCallback("laundry:isWashing", function(result)
                                 c = result
-                            end, k)
+                            end, washer)
                             Wait(200)
                             if not c then return true else return false end
                         end
@@ -61,7 +61,7 @@ Citizen.CreateThread(function()
                             local c = false
                             QBCore.Functions.TriggerCallback("laundry:isReady", function(result)
                                 c = result
-                            end, k)
+                            end, washer)
                             Wait(200)
                             return c
                         end
