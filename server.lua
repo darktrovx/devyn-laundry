@@ -1,4 +1,4 @@
-
+local QBCore = exports['qb-core']:GetCoreObject()
 -- List of washers. The table key is the washerId.
 local washers = {
     [1] = {washing = false, pickup = false, cleaned = 0},
@@ -18,9 +18,8 @@ QBCore.Functions.CreateCallback("laundry:isReady", function(source, cb, washerId
 end)
 
 -- Start the washer if it is not already started.
-RegisterServerEvent("laundry:startwasher")
-AddEventHandler("laundry:startwasher", function(data)
-    src = source
+RegisterServerEvent("laundry:startwasher", function(data)
+    local src = source
     if not washers[data.id].washing then
         wash(data.id, src)
     else 
@@ -29,8 +28,7 @@ AddEventHandler("laundry:startwasher", function(data)
 end)
 
 -- Collect any waiting money from the washer.
-RegisterServerEvent("laundry:collect")
-AddEventHandler("laundry:collect", function(data)
+RegisterServerEvent("laundry:collect", function(data)
     src = source
     local player = QBCore.Functions.GetPlayer(src)
 
@@ -56,7 +54,7 @@ end)
 function GetWasherItems(washerId)
 	local items = {}
     local stash = 'washer'..washerId
-	local result = exports.ghmattimysql:executeSync("SELECT items FROM stashitems WHERE stash=@stash", {['@stash'] = stash})
+	local result = MySQL.Sync.fetchAll("SELECT items FROM stashitems WHERE stash=?", { stash })
     Wait(500)
 	if result[1] ~= nil then 
 		if result[1].items ~= nil then
@@ -84,39 +82,31 @@ function GetWasherItems(washerId)
 	return items
 end
 
--- Attempt to start the washing cycle of the passed washerId.
-function wash(washerId, source)
 
+function wash(washerId, source)
     local stash = 'washer'..washerId
     local items = GetWasherItems(washerId)
     local cleaned = 0
 
-    -- Loop through the items in the stash. If its a "markedbills" item then get its "worth" from the info table and add it to the total "cleaned" amount.
-    for item, data in pairs(items) do 
+    for item, data in pairs(items) do
         if data.name == "markedbills" then
-            if data.info.worth ~= nil then
-                cleaned = cleaned + data.info.worth
-            end
+            --cleaned = cleaned + (1000 * data.amount) -- This gives $1000 per bag.
+            cleaned = cleaned + (data.info.worth * data.amount) -- This gives the worth amount per bag.
         end 
     end
 
-    -- Check to make sure there is anything to clean/wash. 
     if cleaned > 0 then 
         washers[washerId].washing = true
         TriggerClientEvent('QBCore:Notify', source, "Washer will be done in 10 minutes.", 'primary')
 
-        -- Set total to 80% of total marked bills worth.
-        local cleaned = (cleaned * 0.8)
-        -- Wait 10 minutes for wash cycle.
-        Citizen.Wait(60000 * 10)
+        local cleaned = (cleaned * 0.8) -- Returns 80%
+
+        Wait(10 * 60000)
         print("[LAUNDRY]: CLEANED "..cleaned)
         washers[washerId].cleaned = cleaned
         washers[washerId].pickup = true
 
-        -- Remove the items from the stash by setting it to be empty in the database.
-        exports.ghmattimysql:execute("UPDATE stashitems SET items = '[]' WHERE stash = @stash", {
-            ['@stash'] = stash,
-        })
+        MySQL.Sync.fetchAll("UPDATE stashitems SET items = '[]' WHERE stash = ?", { stash })
     else 
         TriggerClientEvent('QBCore:Notify', source, "There is nothing to wash!", 'error')
     end

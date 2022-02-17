@@ -7,10 +7,9 @@ description 'Money Laundry'
 
 server_scripts { 
     "server.lua",
+    '@oxmysql/lib/MySQL.lua',
 }
 
 client_scripts { 
     "client.lua",
 }
-
-shared_script '@qb-core/import.lua'
