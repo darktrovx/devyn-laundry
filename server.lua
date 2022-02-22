@@ -99,7 +99,7 @@ function wash(washerId, source)
         washers[washerId].washing = true
         TriggerClientEvent('QBCore:Notify', source, "Washer will be done in 10 minutes.", 'primary')
 
-        local cleaned = (cleaned * 0.8) -- Returns 80%
+        cleaned = math.floor((cleaned * 0.8)+0.5) -- Returns 80%
 
         Wait(10 * 60000)
         print("[LAUNDRY]: CLEANED "..cleaned)
