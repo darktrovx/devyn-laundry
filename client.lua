@@ -57,6 +57,16 @@ CreateThread(function()
                     },
                     {
                         type = "server",
+                        event = "laundry:check",
+                        icon = "fa-solid fa-hourglass-start",
+                        label = "Check Remaining Time",
+                        id = washer,
+                        canInteract = function()
+                            return isWashing(washer)
+                        end
+                    },
+                    {
+                        type = "server",
                         event = "laundry:collect",
                         icon = "fa-solid fa-hand-holding-usd",
                         label = "Collect Money",

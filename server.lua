@@ -1,4 +1,5 @@
 local QBCore = exports['qb-core']:GetCoreObject()
+local globalTime = 0
 
 -- Callback to check if the passed washerId is already washing.
 QBCore.Functions.CreateCallback("laundry:isWashing", function(source, cb, washerId)
@@ -29,6 +30,12 @@ RegisterServerEvent("laundry:startwasher", function(data)
     else 
         TriggerClientEvent('QBCore:Notify', src, "This washer is already started!", 'error')
     end
+end)
+
+-- Start the washer if it is not already started.
+RegisterServerEvent("laundry:check", function(data)
+    local src = source
+    TriggerClientEvent('QBCore:Notify', src, "There is " .. globalTime .. " minutes remaining", 'primary')
 end)
 
 -- Collect any waiting money from the washer.
@@ -120,7 +127,11 @@ function wash(washerId, source)
             cleaned = math.floor(cleaned + plus)
         end
 
-        Wait(time * 60000)
+        globalTime = time
+        while globalTime ~= 0 do
+            Wait(60000)
+            globalTime = globalTime - 1
+        end
         print("[LAUNDRY]: CLEANED "..cleaned)
         TriggerClientEvent('qb-phone:client:LaunderNotify', source)
         Config.washers[washerId].cleaned = cleaned
