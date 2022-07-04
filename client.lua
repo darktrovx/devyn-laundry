@@ -1,13 +1,5 @@
 
 local QBCore = exports['qb-core']:GetCoreObject()
--- Table of washers for the thread to generate polyzones for qb-target.
-local washers = {
-    {x=1135.70, y=-992.30, z=46.11, h=99.29, length=0.8, width=1.2},
-    {x=1135.43, y=-990.81, z=46.11, h=99.29, length=0.8, width=1.2},
-    {x=1135.30, y=-989.52, z=46.11, h=99.29, length=0.8, width=1.2},
-    {x=1135.15, y=-988.17, z=46.11, h=99.29, length=0.8, width=1.2},
-}
-
 
 function isWashing(washer)
     local washing = promise.new()
@@ -28,14 +20,19 @@ function isReady(washer)
 end
 
 CreateThread(function()
-
-    for washer, data in pairs(washers) do 
-        exports['qb-target']:AddBoxZone("wash"..washer, vector3(data.x, data.y, data.z), data.length, data.width, {
+    local pay
+    for washer, data in pairs(Config.washers) do 
+        if Config.washers[washer].cost > 0 then
+            pay = "for $" .. Config.washers[washer].cost
+        else
+            pay = ""
+        end
+        exports['qb-target']:AddBoxZone("wash"..washer, vector3(data.vec.x, data.vec.y, data.vec.z), 0.8, 1.2, {
             name="wash"..washer,
-            heading=data.h,
-            debugPoly=false,
-            minZ=data.z - 1,
-            maxZ=data.z + 1,
+            heading=data.vec.w,
+            debugPoly=data.debug,
+            minZ=data.vec.z - 1,
+            maxZ=data.vec.z + 1,
             }, {
                 options = {
                     {
@@ -52,7 +49,7 @@ CreateThread(function()
                         type = "server",
                         event = "laundry:startwasher",
                         icon = "fa-solid fa-hourglass-start",
-                        label = "Start Washer",
+                        label = "Start Washer " .. pay,
                         id = washer,
                         canInteract = function()
                             if not isWashing(washer) then return true else return false end 
@@ -69,7 +66,7 @@ CreateThread(function()
                         end
                     },
                 },
-                distance = 3.0
+            distance = 3.0
         })
     end
 end)
