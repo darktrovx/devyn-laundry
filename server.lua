@@ -14,11 +14,18 @@ end)
 RegisterServerEvent("laundry:startwasher", function(data)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
+    local balance = Player.PlayerData.money['cash']
     if not Config.washers[data.id].washing then
         if Config.washers[data.id].cost > 0 then
-            Player.Functions.RemoveMoney('cash', Config.washers[data.id].cost, Config.washers[data.id].nickName)
+            if balance >= Config.washers[data.id].cost then
+                Player.Functions.RemoveMoney('cash', Config.washers[data.id].cost, Config.washers[data.id].nickName)
+                wash(data.id, src)
+            else
+                TriggerClientEvent('QBCore:Notify', src, "You need more cash to start this washer!", 'error')
+            end
+        else
+            wash(data.id, src)
         end
-        wash(data.id, src)
     else 
         TriggerClientEvent('QBCore:Notify', src, "This washer is already started!", 'error')
     end
@@ -93,7 +100,7 @@ function wash(washerId, source)
 
     if cleaned > 0 then 
         Config.washers[washerId].washing = true
-        TriggerClientEvent('QBCore:Notify', source, Config.washers[washerId].nickName .. " will be done in " .. Config.washers[washerId].washTime .. " minutes.", 'primary')
+        TriggerClientEvent('QBCore:Notify', source, Config.washers[washerId].nickName .. " will be done in " .. (Config.washers[washerId].washTime * #items) .. " minutes.", 'primary')
 
         cleaned = math.floor(cleaned * Config.washers[washerId].rtrnPerc) -- Returns 80%
 
@@ -112,7 +119,7 @@ function wash(washerId, source)
             cleaned = math.floor(cleaned + plus)
         end
 
-        Wait(Config.washers[washerId].washTime * 60000)
+        Wait((Config.washers[washerId].washTime * #items) * 60000)
         print("[LAUNDRY]: CLEANED "..cleaned)
         TriggerClientEvent('qb-phone:client:LaunderNotify', source)
         Config.washers[washerId].cleaned = cleaned
