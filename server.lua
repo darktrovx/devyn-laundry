@@ -97,10 +97,11 @@ function wash(washerId, source)
             cleaned = cleaned + (data.info.worth * data.amount) -- This gives the worth amount per bag.
         end 
     end
-
+    
+    local time = Config.washers[washerId].washTime * #items
     if cleaned > 0 then 
         Config.washers[washerId].washing = true
-        TriggerClientEvent('QBCore:Notify', source, Config.washers[washerId].nickName .. " will be done in " .. (Config.washers[washerId].washTime * #items) .. " minutes.", 'primary')
+        TriggerClientEvent('QBCore:Notify', source, Config.washers[washerId].nickName .. " will be done in " .. time .. " minutes.", 'primary')
 
         cleaned = math.floor(cleaned * Config.washers[washerId].rtrnPerc) -- Returns 80%
 
@@ -119,7 +120,7 @@ function wash(washerId, source)
             cleaned = math.floor(cleaned + plus)
         end
 
-        Wait((Config.washers[washerId].washTime * #items) * 60000)
+        Wait(time * 60000)
         print("[LAUNDRY]: CLEANED "..cleaned)
         TriggerClientEvent('qb-phone:client:LaunderNotify', source)
         Config.washers[washerId].cleaned = cleaned
