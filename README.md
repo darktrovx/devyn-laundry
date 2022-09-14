@@ -25,6 +25,8 @@ end)
 
 I've put notes where I can.
 
+NOTE: THIS DOES NOT WORK WITH https://www.gta5-mods.com/maps/abandoned-laundromat-interior-singleplayer-fivem-gtadps (Due to how the "props" are made)
+
 # FiveM-QBCore-Money-Wash (Original)
 
 MLO: https://www.gta5-mods.com/maps/abandoned-laundromat-interior-singleplayer-fivem-gtadps
