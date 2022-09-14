@@ -4,6 +4,9 @@ game 'gta5'
 author 'Devyn'
 description 'Money Laundry'
 
+shared_scripts { 
+	'config.lua'
+}
 
 server_scripts { 
     "server.lua",

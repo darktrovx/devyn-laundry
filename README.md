@@ -1,4 +1,33 @@
-# FiveM-QBCore-Money-Wash
+# BrianTU's Update
+This is a modified version of the public resource uploaded by [devin-monro](https://github.com/devin-monro/devyn-laundry)
+Some inspiration by [JamesSc0tt's laundry](https://github.com/JamesSc0tt/qb-overlord-laundering) another public laundry resource.
+
+What my edits do is introduces a config file, that lets you customize each washer easily and fast.
+
+Additionally, I added support for the qb-phone alert provided by JamesSc0tt's laundry.
+
+If you want to add the alert, add the following code to qb-phone/client/main.lua
+```
+RegisterNetEvent('qb-phone:client:LaunderNotify')
+AddEventHandler('qb-phone:client:LaunderNotify', function(message)
+    SendNUIMessage({
+        action = "PhoneNotification",
+        PhoneNotify = {
+            title = "Washing Machine",
+            text = "Cycle Completed",
+            icon = "fas fa-check",
+            color = "#ebc934",
+            timeout = 3500,
+        },
+    })
+end)
+```
+
+I've put notes where I can.
+
+NOTE: THIS DOES NOT WORK WITH https://www.gta5-mods.com/maps/abandoned-laundromat-interior-singleplayer-fivem-gtadps (Due to how the "props" are made)
+
+# FiveM-QBCore-Money-Wash (Original)
 
 MLO: https://www.gta5-mods.com/maps/abandoned-laundromat-interior-singleplayer-fivem-gtadps
 
