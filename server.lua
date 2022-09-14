@@ -1,58 +1,101 @@
 local QBCore = exports['qb-core']:GetCoreObject()
-local globalTime = 0
 
--- Callback to check if the passed washerId is already washing.
-QBCore.Functions.CreateCallback("laundry:isWashing", function(source, cb, washerId)
-    cb(Config.washers[washerId].washing)
-end)
+local washer = { }
 
--- Callback check to see if the passed washerId is ready for collection/pickup.
-QBCore.Functions.CreateCallback("laundry:isReady", function(source, cb, washerId)
-    cb(Config.washers[washerId].pickup)
-end)
+for k,v in pairs(Config.washers) do
+    if washer[k] == nil then
+        washer[k] = {washing = false, ready = false, collect = 0, time = 0}
+    end
+end
 
 -- Start the washer if it is not already started.
 RegisterServerEvent("laundry:startwasher", function(data)
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     local balance = Player.PlayerData.money['cash']
-    if not Config.washers[data.id].washing then
-        if Config.washers[data.id].cost > 0 then
-            if balance >= Config.washers[data.id].cost then
-                Player.Functions.RemoveMoney('cash', Config.washers[data.id].cost, Config.washers[data.id].nickName)
-                wash(data.id, src)
+
+    if #(GetWasherItems(data.id)) > 0 then
+        if not washer[data.id].washing then
+            if Config.washers[data.id].cost > 0 then
+                if balance >= Config.washers[data.id].cost then
+                    Player.Functions.RemoveMoney('cash', Config.washers[data.id].cost, Config.washers[data.id].nickName)
+                    wash(data.id, src)
+                    for _, playerId in ipairs(GetPlayers()) do
+                        TriggerClientEvent("laundry:client:isWashing", playerId, data.id, true)
+                    end
+                else
+                    TriggerClientEvent('QBCore:Notify', src, "You need more cash to start this washer!", 'error')
+                end
             else
-                TriggerClientEvent('QBCore:Notify', src, "You need more cash to start this washer!", 'error')
+                wash(data.id, src)
+                for _, playerId in ipairs(GetPlayers()) do
+                    TriggerClientEvent("laundry:client:isWashing", playerId, data.id, true)
+                end
             end
-        else
-            wash(data.id, src)
+        else 
+            TriggerClientEvent('QBCore:Notify', src, "This washer is already started!", 'error')
         end
-    else 
-        TriggerClientEvent('QBCore:Notify', src, "This washer is already started!", 'error')
+    else
+        TriggerClientEvent('QBCore:Notify', src, "There is nothing to wash!", 'error')
     end
 end)
 
--- Start the washer if it is not already started.
+-- Check Time
 RegisterServerEvent("laundry:check", function(data)
     local src = source
-    TriggerClientEvent('QBCore:Notify', src, "There is " .. globalTime .. " minutes remaining", 'primary')
+    if washer[data.id].time > 0 then
+        TriggerClientEvent('QBCore:Notify', src, "There is " .. washer[data.id].time .. " minutes remaining", 'primary')
+    else
+        TriggerClientEvent('QBCore:Notify', src, "There's nothing washing", 'error')
+    end
 end)
 
 -- Collect any waiting money from the washer.
 RegisterServerEvent("laundry:collect", function(data)
-    src = source
+    local src = source
     local player = QBCore.Functions.GetPlayer(src)
-    if Config.washers[data.id].pickup then 
-        if Config.washers[data.id].cleaned > 0 then
-            player.Functions.AddMoney("cash", Config.washers[data.id].cleaned, "Money Washed")
-            Config.washers[data.id].cleaned = 0
-            Config.washers[data.id].pickup = false
-            Config.washers[data.id].washing = false
+    if washer[data.id].ready then 
+        local payout = washer[data.id].collect
+        if Config.washers[data.id].bonuses ~= nil then
+            local bonus = Config.washers[data.id].bonuses
+            if bonus.gang ~= nil then
+                local theirGang = QBCore.Functions.GetPlayer(source).PlayerData.gang.name
+                for gang, count in pairs(bonus.gang) do
+                    if theirGang == gang then
+                        local plus = payout * count
+                        payout = math.floor(payout + plus)
+                    end
+                end
+            end
+            if bonus.job ~= nil then
+                local theirJob = QBCore.Functions.GetPlayer(source).PlayerData.job.name
+                for job, count in pairs(bonus.job) do
+                    if theirJob == job then
+                        local plus = payout * count
+                        payout = math.floor(payout + plus)
+                    end
+                end
+            end
+        end
+
+        if payout > 0 then
+            player.Functions.AddMoney("cash", payout, "Money Washed")
+            washer[data.id].collect = 0
+            washer[data.id].ready = false
+            washer[data.id].washing = false
+            for _, playerId in ipairs(GetPlayers()) do
+                TriggerClientEvent("laundry:client:isWashing", playerId, data.id, false)
+                TriggerClientEvent("laundry:client:isReady", playerId, data.id, false)
+            end
         else 
             TriggerClientEvent('QBCore:Notify', src, "There is no clean money to collect!", 'error')
-            Config.washers[data.id].cleaned = 0
-            Config.washers[data.id].pickup = false
-            Config.washers[data.id].washing = false
+            washer[data.id].collect = 0
+            washer[data.id].ready = false
+            washer[data.id].washing = false
+            for _, playerId in ipairs(GetPlayers()) do
+                TriggerClientEvent("laundry:client:isWashing", playerId, data.id, false)
+                TriggerClientEvent("laundry:client:isReady", playerId, data.id, false)
+            end
         end
     else 
         TriggerClientEvent('QBCore:Notify', src, "This washer is currently cleaning!", 'error')
@@ -100,17 +143,23 @@ function wash(washerId, source)
 
     for item, data in pairs(items) do
         if data.name == "markedbills" then
-            --cleaned = cleaned + (1000 * data.amount) -- This gives $1000 per bag.
-            cleaned = cleaned + (data.info.worth * data.amount) -- This gives the worth amount per bag.
+            cleaned = cleaned + (data.info.worth * data.amount)
         end 
     end
-    
-    local time = Config.washers[washerId].washTime * #items
+    local itemCount = #items
+    local extraWashTime = 0
+    if itemCount > 1 then
+        extraWashTime = (itemCount-1) * Config.washers[washerId].washExtra
+    else 
+        extraWashTime = 0
+    end
+
+    local time = Config.washers[washerId].washTime + extraWashTime
     if cleaned > 0 then 
-        Config.washers[washerId].washing = true
+        washer[washerId].washing = true
         TriggerClientEvent('QBCore:Notify', source, Config.washers[washerId].nickName .. " will be done in " .. time .. " minutes.", 'primary')
 
-        cleaned = math.floor(cleaned * Config.washers[washerId].rtrnPerc) -- Returns 80%
+        cleaned = math.floor(cleaned * Config.washers[washerId].rtrnPerc)
 
         if Config.policeOnDutyBonus > 0 then
             local num_police = 0
@@ -127,17 +176,26 @@ function wash(washerId, source)
             cleaned = math.floor(cleaned + plus)
         end
 
-        globalTime = time
-        while globalTime ~= 0 do
-            Wait(60000)
-            globalTime = globalTime - 1
-        end
-        print("[LAUNDRY]: CLEANED "..cleaned)
-        TriggerClientEvent('qb-phone:client:LaunderNotify', source)
-        Config.washers[washerId].cleaned = cleaned
-        Config.washers[washerId].pickup = true
-
-        MySQL.Sync.fetchAll("UPDATE stashitems SET items = '[]' WHERE stash = ?", { stash })
+        washer[washerId].time = time
+        Citizen.CreateThread(function()
+            while washer[washerId].time ~= 0  do
+                if washer[washerId].time < 0 then
+                    washer[washerId].time = 0
+                else
+                    Wait(60000)
+                    washer[washerId].time = washer[washerId].time - 1
+                end
+            end
+        
+            TriggerClientEvent('qb-phone:client:LaunderNotify', source)
+            washer[washerId].collect = cleaned
+            washer[washerId].ready = true
+            for _, playerId in ipairs(GetPlayers()) do
+                TriggerClientEvent("laundry:client:isReady", playerId, washerId, true)
+            end
+            
+            MySQL.Sync.fetchAll("UPDATE stashitems SET items = '[]' WHERE stash = ?", { stash })
+        end)
     else 
         TriggerClientEvent('QBCore:Notify', source, "There is nothing to wash!", 'error')
     end
