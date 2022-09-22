@@ -1,3 +1,7 @@
+
+# I no longer update this script.
+I sell a modified verison of it here: https://gigachad.tebex.io/package/5228491
+
 # BrianTU's Update
 This is a modified version of the public resource uploaded by [devin-monro](https://github.com/devin-monro/devyn-laundry)
 Some inspiration by [JamesSc0tt's laundry](https://github.com/JamesSc0tt/qb-overlord-laundering) another public laundry resource.
